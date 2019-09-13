@@ -19,6 +19,9 @@
 <script src="image_options_20190911_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="image_options_20190911_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="image_options_20190911_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="image_options_20190911_files/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="image_options_20190911_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="image_options_20190911_files/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="image_options_20190911_files/navigation-1.1/tabsets.js"></script>
 <link href="image_options_20190911_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="image_options_20190911_files/highlightjs-9.12.0/highlight.js"></script>
@@ -173,6 +176,98 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
 
 </head>
 
@@ -180,6 +275,16 @@ $(document).ready(function () {
 
 
 <div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
 
 
 
@@ -192,15 +297,15 @@ $(document).ready(function () {
 </div>
 
 
-<!-- <meta charset="UTF-8"> -->
+<meta charset="UTF-8">
 <div id="harvard-library" class="section level1">
 <h1>Harvard Library</h1>
 <div id="open-inclusive" class="section level4">
 <h4>Open &amp; Inclusive</h4>
-<p><a href="https://forms.gle/dNg3HYxdLxQwQzJQ6">link to form</a></p>
+<!-- [link to form](https://forms.gle/dNg3HYxdLxQwQzJQ6) -->
 </div>
 <div id="africa" class="section level2">
-<h2>Africa</h2>
+<h2><a href="#africa">Africa</a></h2>
 <a href="https://ids.lib.harvard.edu/ids/iiif/50834102/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/50834102/full/600,/0/native.jpg" alt="Mount Sinai.1849-1869."/></a><br /><a href="http://id.lib.harvard.edu/aleph/007483387/catalog" target="blank"><b>Mount Sinai.1849-1869. </b></a><br />[Largest image in DRS: 7056 x 3495]</br><br />
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/42914881/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/42914881/full/600,/0/native.jpg" alt="Effigies ampli Regni auriferi Guineae in Afric..."/></a><br /><a href="http://id.lib.harvard.edu/alma/990126963180203941/catalog" target="blank"><b> Effigies ampli Regni auriferi Guineae in Africa siti, extensum inde ad insulis Atlanticis, vulgo dictis, de Cabo Verde : ad flumen Benin, us[que], ad cujus ripam sita est Regia urbs et magna Benin, at[que] inde ad promontorium Lopi Gonsalvi</b></a><br />[Largest image in DRS: 7669 x 6504]</br><br />
@@ -211,15 +316,9 @@ $(document).ready(function () {
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/25431937/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/25431937/full/600,/0/native.jpg" alt="Snake dancer, Inhambane, Portuguese East Africa..."/></a><br /><a href="http://id.lib.harvard.edu/images/olvwork576641/catalog" target="blank"><b>Snake dancer, Inhambane, Portuguese East Africa, South Africa</b></a><br />[Largest image in DRS: 4421 x 5761]</br><br />
 <hr />
-<a href="https://ids.lib.harvard.edu/ids/iiif/25431948/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/25431948/full/600,/0/native.jpg" alt="Bride (center) and Her Attendants, Nguni N'debe..."/></a><br /><a href="https://images.hollis.harvard.edu/permalink/f/100kie6/HVD_VIAolvwork576854" target="blank"><b>Bride (center) and Her Attendants, Nguni N’debeles, Pretoria District, Northern Transvaal, South Africa.</b></a><br />[Largest image in DRS: 5804 x 4142]</br><br />
-<hr />
-<a href="https://ids.lib.harvard.edu/ids/iiif/25431933/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/25431933/full/600,/0/native.jpg" alt="Xosa Women Reaping, Tamacha, King William's Tow..."/></a><br /><a href="https://images.hollis.harvard.edu/permalink/f/100kie6/HVD_VIAolvwork576635" target="blank"><b>Xosa Women Reaping, Tamacha, King William’s Town District, Cape of Good Hope, South Africa.</b></a><br />[Largest image in DRS: 5770 x 4457]</br><br />
-<hr />
-<a href="https://ids.lib.harvard.edu/ids/iiif/424632403/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/424632403/full/600,/0/native.jpg" alt="Group Portrait with School Van at Future Site o..."/></a><br /><a href="https://images.hollis.harvard.edu/permalink/f/100kie6/HVD_VIA8001306213" target="blank"><b>Group Portrait with School Van at Future Site of Nigeria Motor Drivers’ &amp; Mechanics School. (1960).</b></a><br />[Largest image in DRS: 2979 x 2411]</br><br />
-<hr />
 </div>
 <div id="asia" class="section level2">
-<h2>Asia</h2>
+<h2><a href="#asia">Asia</a></h2>
 <a href="https://ids.lib.harvard.edu/ids/iiif/52410129/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/52410129/full/600,/0/native.jpg" alt="Ã¥Â°ÂÃ¥Â·ÂÃ¦ÂÂ¾Ã©â€ºÂ². Ã¦ÂÂ¾Ã©â€ºÂ²Ã¦Â¨Â¡Ã¦Â¨Â£Ã¨Â¼Â¯. Ã¤ÂºÂ¬Ã©Æ’Â½ : Ã¥Â±Â±Ã§â€Â°..."/></a><br /><a href="http://id.lib.harvard.edu/alma/990082592370203941/catalog" target="blank"><b> Ã¥Â°ÂÃ¥Â·ÂÃ¦ÂÂ¾Ã©â€ºÂ². Ã¦ÂÂ¾Ã©â€ºÂ²Ã¦Â¨Â¡Ã¦Â¨Â£Ã¨Â¼Â¯. Ã¤ÂºÂ¬Ã©Æ’Â½ : Ã¥Â±Â±Ã§â€Â°Ã¨Å Â¸Ã¨â€°Â¸| ShÃ…Âun moyÃ…ÂshÃ…Â«, Ã¦ËœÅ½Ã¦Â²Â»34-35 [1901-1902].</b></a><br />[Largest image in DRS: 3032 x 4524]</br><br />
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/426036935/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/426036935/full/600,/0/native.jpg" alt="[Album of watercolors of Asian fruits and flowe..."/></a><br /><a href="http://id.lib.harvard.edu/alma/990095788310203941/catalog" target="blank"><b>[Album of watercolors of Asian fruits and flowers]. [between 1798 and 1850?]. RARE RBR K-3-2 PHIL. Dumbarton Oaks Research Library, Washington, D.C.</b></a><br />[Largest image in DRS: 4902 x 4138]</br><br />
@@ -254,7 +353,7 @@ $(document).ready(function () {
 <hr />
 </div>
 <div id="europe" class="section level2">
-<h2>Europe</h2>
+<h2><a href="#europe">Europe</a></h2>
 <a href="https://ids.lib.harvard.edu/ids/iiif/14322641/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/14322641/full/600,/0/native.jpg" alt="London primer. [London] : W. Darton, 1818."/></a><br /><a href="http://id.lib.harvard.edu/aleph/003446642/catalog" target="blank"><b> London primer. [London] : W. Darton, 1818.</b></a><br />[Largest image in DRS: 4048 x 3001]</br><br />
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/2655447/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/2655447/full/600,/0/native.jpg" alt="[Portolan chart of the Mediterranean and coast]"/></a><br /><a href="http://id.lib.harvard.edu/alma/990097029250203941/catalog" target="blank"><b>[Portolan chart of the Mediterranean and coast]</b></a><br />[Largest image in DRS: 7740 x 5400]</br><br />
@@ -273,7 +372,7 @@ $(document).ready(function () {
 <hr />
 </div>
 <div id="north-america" class="section level2">
-<h2>North America</h2>
+<h2><a href="#northamerica">North America</a></h2>
 <a href="https://ids.lib.harvard.edu/ids/iiif/1245085/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/1245085/full/600,/0/native.jpg" alt="Man with ladle: One of a series of 26 photograp..."/></a><br /><a href="https://images.hollis.harvard.edu/permalink/f/hm0m8n/HVD_VIAolvwork272734" target="blank"><b>Man with ladle: One of a series of 26 photographs depicting the activities of the Shelton Looms.</b></a><br />[Largest image in DRS: 2036 x 2536]</br><br />
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/1252309/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/1252309/full/600,/0/native.jpg" alt="Cotton warper: One of a series of 26 photograph..."/></a><br /><a href="https://images.hollis.harvard.edu/permalink/f/hm0m8n/HVD_VIAolvwork277739" target="blank"><b>Cotton warper: One of a series of 26 photographs depicting the activities of the Shelton Looms.</b></a><br />[Largest image in DRS: 4175 x 5070]</br><br />
@@ -298,7 +397,7 @@ $(document).ready(function () {
 <hr />
 </div>
 <div id="oceania" class="section level2">
-<h2>Oceania</h2>
+<h2><a href="#oceania">Oceania</a></h2>
 <a href="https://ids.lib.harvard.edu/ids/iiif/44665425/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/44665425/full/600,/0/native.jpg" alt="An Australian Warrior from Reconnoitering voyag..."/></a><br /><a href="http://id.lib.harvard.edu/alma/990046339850203941/catalog" target="blank"><b>An Australian Warrior from Reconnoitering voyages and travels :with adventures in the new colonies of South Australia : a particular description of the town of Adelaide, and Kangaroo Island </b></a><br />[Largest image in DRS: 1719 x 2775]</br><br />
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/12529317/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/12529317/full/600,/0/native.jpg" alt="Atlas du voyag [sic] de La PÃƒÂ©rouse et La reche..."/></a><br /><a href="http://id.lib.harvard.edu/alma/990118805430203941/catalog" target="blank"><b>Atlas du voyag [sic] de La PÃƒÂ©rouse et La recherche de La PÃƒÂ©rouse</b></a><br />[Largest image in DRS: 4955 x 6936]</br><br />
@@ -309,7 +408,7 @@ $(document).ready(function () {
 <hr />
 </div>
 <div id="south-america" class="section level2">
-<h2>South America</h2>
+<h2><a href="#southamerica">South America</a></h2>
 <a href="https://ids.lib.harvard.edu/ids/iiif/422267190/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/422267190/full/600,/0/native.jpg" alt="[Album of aquarelle drawings of Ecuadorian nati..."/></a><br /><a href="http://id.lib.harvard.edu/aleph/014517938/catalog" target="blank"><b>[Album of aquarelle drawings of Ecuadorian natives and costumes]. [approximately 1850?]</b></a><br />[Largest image in DRS: 6010 x 3810]</br><br />
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/3402101/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/3402101/full/600,/0/native.jpg" alt="River bank, Manaos, Brazil, 7 December 1865"/></a><br /><a href="http://id.lib.harvard.edu/images/olvwork307881/urn-3:FMUS.MCZ:2005-719534/catalog" target="blank"><b> River bank, Manaos, Brazil, 7 December 1865</b></a><br />[Largest image in DRS: 4732 x 3182]</br><br />
@@ -320,14 +419,16 @@ $(document).ready(function () {
 <hr />
 <a href="https://ids.lib.harvard.edu/ids/iiif/422678193/full/full/0/native.jpg"><img src="https://ids.lib.harvard.edu/ids/iiif/422678193/full/600,/0/native.jpg" alt="Le Chimborazo vu depuis le Plateau de Tapia"/></a><br /><a href="http://id.lib.harvard.edu/alma/990011000510203941/catalog" target="blank"><b>Le Chimborazo vu depuis le Plateau de Tapia</b></a><br />[Largest image in DRS: 10538 x 7279]</br><br />
 <hr />
-<div id="last-revised-fri-sep-13-115515-2019" class="section level5">
-<h5>Last Revised: Fri Sep 13 11:55:15 2019</h5>
+<div id="last-revised-fri-sep-13-130043-2019" class="section level5">
+<h5>Last Revised: Fri Sep 13 13:00:43 2019</h5>
 </div>
 </div>
 </div>
 
 
 
+</div>
+</div>
 
 </div>
 
