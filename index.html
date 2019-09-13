@@ -1,0 +1,505 @@
+---
+output: 
+  html_document: 
+    self_contained: no
+---
+
+```{r setup, include=FALSE, eval= TRUE}
+knitr::opts_chunk$set(include = FALSE)
+options(encoding="utf-8")
+
+pacman::p_load(
+  readr,
+  httr,
+  jsonlite,
+  curl,
+  stringr,
+  dplyr,
+  xtable,
+  formattable,
+  htmlTable,
+  data.table,
+  RCurl,
+  curl,
+  plotly,
+  scales,
+  # utf8,
+  htmltools
+) # load modules
+
+##########
+## VARS ##
+manifestStem <- "https://iiif.lib.harvard.edu/manifests/drs:"
+ids_manifestStem <- "https://iiif.lib.harvard.edu/manifests/ids:"
+ids_pds_frameStem <- "https://iiif.lib.harvard.edu/manifests/view/ids:"
+imgDimStem <- "http://ids.lib.harvard.edu/ids/iiif/"
+imgDimTail <- "/info.json"
+imageSize <- "600"
+scaledURLStem <- "https://ids.lib.harvard.edu/ids/iiif/"
+scaledURLTail_1 <- "/full/" # manage width
+# scaledURLTail_1 <- "/full/," # manage height
+scaledURLTail_2 <- ",/0/native.jpg" # manage width
+# scaledURLTail_2 <- "/0/native.jpg" # manage height
+## VARS ##
+##########
+
+```
+
+```{r loadFromSpreadsheet, include=FALSE, eval=FALSE}
+
+# load("image_suggestions.Rda")
+# image_suggestions <- read_csv("image_suggestions_2.csv")
+image_suggestions <- getURI("https://docs.google.com/spreadsheets/d/e/2PACX-1vTeUl7MBeBWzk9ie5w7weE1dko6Xi17ngzgvLyVXHGTcIdVgRV3o6UHhgBtGi4i0Vh29npm8Zf1NwZ7/pub?gid=2102713507&single=true&output=csv")
+image_suggestions <- read.csv(textConnection((image_suggestions)),fileEncoding = "UTF-8")
+# image_suggestions[] <- lapply(image_suggestions,as.character)
+
+# http://ids.lib.harvard.edu/ids/iiif/11869105/info.json
+
+image_suggestions["imageWidth"] <- NA
+image_suggestions["imageHeight"] <- NA
+image_suggestions["drsID"] <- NA
+image_suggestions["object_seq_num"] <- NA
+image_suggestions["fullSizeImageURL"] <- NA
+image_suggestions["scaledImageURL"] <- NA
+
+colnames(image_suggestions) <- c("timestamp",
+                                 "continent",
+                                 "title",
+                                 "catalog",
+                                 "imageURN",
+                                 "note",
+                                 "email",
+                                 "imageWidth",
+                                 "imageHeight",
+                                 "drsID",
+                                 "object_seq_num",
+                                 "fullSizeImageURL",
+                                 "scaledImageURL")
+```
+
+```{r loadFromFile, include=FALSE, eval=TRUE}
+load(file = "image_suggestions.Rda")
+image_suggestions <- image_suggestions%>%
+  filter(is.na(image_suggestions$drsID) == FALSE)
+# image_suggestions$title <- as_utf8(image_suggestions$title)
+
+# i <- 1 # update scaled image to control height
+# n <- nrow(image_suggestions)
+# while(i <= n){
+# a <- gsub("(.*full/)[0-9]{1,}.*","\\1",image_suggestions$scaledImageURL[i])
+# b <- paste0(",",imageSize,"/0/naive.jpg")
+# image_suggestions$scaledImageURL[i] <- paste0(a,b)
+# i <- i + 1
+# }
+
+# save(image_suggestions,file = "image_suggestions.Rda")
+
+```
+
+
+```{r processCSV, include=FALSE, eval=FALSE}
+
+# #################################
+# ## CASE 1: urn-3 & buttons = y ##
+idx <- grepl("urn-3",image_suggestions$imageURN) == TRUE & grepl("?buttons=", image_suggestions$imageURN) == TRUE
+i <- 1
+n <- nrow(image_suggestions)
+matchingRows <- (1:n)[idx] # browseURL(https://www.quora.com/In-R-if-you-wanted-to-find-the-indices-row-numbers-for-observations-that-meet-a-particular-condition-what-might-you-use)
+n <- length(matchingRows)
+while(i <= n){
+  jsonRecCurlFetchMemory <- curl::curl_fetch_memory(as.vector(image_suggestions$imageURN[matchingRows][i]))
+  drs_id <- gsub("^.*ids:([0-9]{1,})","\\1",jsonRecCurlFetchMemory$url) ; drs_id
+  image_suggestions$drsID[matchingRows[i]] <- drs_id
+  image_suggestions$object_seq_num[matchingRows[i]] <- NA
+  dimension <- fromJSON(paste0(imgDimStem,drs_id,imgDimTail))
+  image_suggestions$imageWidth[matchingRows[i]] <- dimension$width
+  image_suggestions$imageHeight[matchingRows[i]] <- dimension$height
+  jsonManifest <- fromJSON(paste0(ids_manifestStem,drs_id))
+  image_suggestions$fullSizeImageURL[matchingRows[i]] <- jsonManifest$sequences$canvases[[1]]$images[[1]]$resource$`@id`
+  i <- i + 1
+}
+## CASE 1: urn-3 & buttons = y ##
+#################################
+#########################
+## CASE 2: urn-3 & n = ##
+idx <- grepl("urn-3",image_suggestions$imageURN) == TRUE & grepl("?n=", image_suggestions$imageURN) == TRUE
+i <- 1
+n <- nrow(image_suggestions)
+matchingRows <- (1:n)[idx] # browseURL(https://www.quora.com/In-R-if-you-wanted-to-find-the-indices-row-numbers-for-observations-that-meet-a-particular-condition-what-might-you-use)
+n <- length(matchingRows)
+while(i <= n){
+  jsonRecCurlFetchMemory <- curl::curl_fetch_memory(as.vector(image_suggestions$imageURN[matchingRows][i]))
+  x <- gsub("^.*drs:([0-9]{1,})","\\1",jsonRecCurlFetchMemory$url) ; x
+  seqNum <- as.numeric(gsub(".*\\$([0-9]{1,9})i","\\1",x)) ; seqNum
+  drs_id <- gsub("([0-9]{1,})\\$.*","\\1",x) ; drs_id # OBJECT DRS ID
+
+  image_suggestions$object_seq_num[matchingRows[i]] <- as.numeric(seqNum)
+  manifest <- fromJSON(paste0(manifestStem,drs_id))
+  image_suggestions$fullSizeImageURL[matchingRows[i]] <- manifest$sequences$canvases[[1]]$images[[seqNum]]$resource$`@id`
+  drs_id <- gsub(".*iif/([0-9]{1,})/.*","\\1",image_suggestions$fullSizeImageURL[matchingRows[i]]) ; drs_id # IMAGE DRS ID
+  image_suggestions$drsID[matchingRows[i]] <- drs_id
+
+  dimension <- fromJSON(paste0(imgDimStem,drs_id,imgDimTail))
+  image_suggestions$imageWidth[matchingRows[i]] <- dimension$width
+  image_suggestions$imageHeight[matchingRows[i]] <- dimension$height
+
+  i <- i + 1
+}
+## CASE 2: urn-3 & n = ##
+#########################
+
+##################
+## CASE 3: ids: ##
+idx <- grepl("urn-3",image_suggestions$imageURN) == FALSE & grepl("ids:", image_suggestions$imageURN) == TRUE
+i <- 1
+n <- nrow(image_suggestions)
+matchingRows <- (1:n)[idx] # browseURL(https://www.quora.com/In-R-if-you-wanted-to-find-the-indices-row-numbers-for-observations-that-meet-a-particular-condition-what-might-you-use)
+n <- length(matchingRows)
+while(i <= n){
+  jsonRecCurlFetchMemory <- curl::curl_fetch_memory(as.vector(image_suggestions$imageURN[matchingRows][i]))
+  x <- gsub("^.*ids:([0-9]{1,})","\\1",jsonRecCurlFetchMemory$url) ; x
+  seqNum <- as.numeric(gsub(".*\\$([0-9]{1,9})i","\\1",x)) ; seqNum
+  drs_id <- gsub("([0-9]{1,})\\$.*i","\\1",x) ; drs_id
+  image_suggestions$drsID[matchingRows[i]] <- drs_id
+  image_suggestions$object_seq_num[matchingRows[i]] <- NA
+  dimension <- fromJSON(paste0(imgDimStem,drs_id,imgDimTail))
+  image_suggestions$imageWidth[matchingRows[i]] <- dimension$width
+  image_suggestions$imageHeight[matchingRows[i]] <- dimension$height
+  jsonManifest <- fromJSON(paste0(ids_manifestStem,drs_id))
+  image_suggestions$fullSizeImageURL[matchingRows[i]] <- jsonManifest$sequences$canvases[[1]]$images[[1]]$resource$`@id`
+  i <- i + 1
+}
+## CASE 3: ids: ##
+##################
+
+################################
+## CASE 4: iiif: single image ##
+idx <- grepl("ids.lib.harvard.edu/ids/iiif",image_suggestions$imageURN) == TRUE
+i <- 1
+n <- nrow(image_suggestions)
+matchingRows <- (1:n)[idx] # browseURL(https://www.quora.com/In-R-if-you-wanted-to-find-the-indices-row-numbers-for-observations-that-meet-a-particular-condition-what-might-you-use)
+n <- length(matchingRows)
+while(i <= n){
+  jsonRecCurlFetchMemory <- curl::curl_fetch_memory(as.vector(image_suggestions$imageURN[matchingRows][i]))
+  x <- gsub("^./ids/iiif/([0-9]{1,}).*","\\1",jsonRecCurlFetchMemory$url) ; x
+  drs_id <- as.numeric(gsub(".*\\iiif/([0-9]{1,9})/.*jpg","\\1",x)) ; drs_id
+  image_suggestions$object_seq_num[i] <- NA 
+  image_suggestions$drsID[matchingRows[i]] <- drs_id
+  image_suggestions$object_seq_num[matchingRows[i]] <- NA
+  dimension <- fromJSON(paste0(imgDimStem,drs_id,imgDimTail))
+  image_suggestions$imageWidth[matchingRows[i]] <- dimension$width
+  image_suggestions$imageHeight[matchingRows[i]] <- dimension$height
+  jsonManifest <- fromJSON(paste0(ids_manifestStem,drs_id)) ## OOPS?
+  image_suggestions$fullSizeImageURL[matchingRows[i]] <- jsonManifest$sequences$canvases[[1]]$images[[1]]$resource$`@id`
+  i <- i + 1
+}
+## CASE 4: iiif: single image ##
+################################
+
+#######################
+## CASE 5: iiif & drs##
+idx <- grepl("https://iiif.lib.harvard.edu/manifests/view/drs:.*i",image_suggestions$imageURN) == TRUE
+i <- 1
+n <- nrow(image_suggestions)
+matchingRows <- (1:n)[idx] # browseURL(https://www.quora.com/In-R-if-you-wanted-to-find-the-indices-row-numbers-for-observations-that-meet-a-particular-condition-what-might-you-use)
+n <- length(matchingRows) ; n
+while(i <= n){
+  jsonRecCurlFetchMemory <- curl::curl_fetch_memory(as.vector(image_suggestions$imageURN[matchingRows][i]))
+  drs_id <- gsub("^.*/manifests/view/drs:([0-9]{1,})\\$.*i","\\1",jsonRecCurlFetchMemory$url) ; drs_id
+  seqNum <- as.numeric(gsub(".*\\$([0-9]{1,})i","\\1",jsonRecCurlFetchMemory$url)) ; seqNum
+  
+  image_suggestions$object_seq_num[matchingRows[i]] <- seqNum ;seqNum
+  jsonManifest <- fromJSON(paste0(manifestStem,drs_id))
+  image_suggestions$fullSizeImageURL[matchingRows[i]] <- jsonManifest$sequences$canvases[[1]]$images[[seqNum]]$resource$`@id`
+  drs_id <- gsub(".*iiif/([0-9]{1,9})/.*","\\1",image_suggestions$fullSizeImageURL[matchingRows[i]]) ; drs_id
+  image_suggestions$drsID[matchingRows[i]] <- drs_id
+  dimension <- fromJSON(paste0(imgDimStem,drs_id,imgDimTail))
+  image_suggestions$imageWidth[matchingRows[i]] <- dimension$width
+  image_suggestions$imageHeight[matchingRows[i]] <- dimension$height
+  i <- i + 1
+}
+## CASE 5: iiif & drs##
+#######################
+
+######################
+## Scaled image URL ##
+# "https://ids.lib.harvard.edu/ids/iiif/53931068/full/150,/0/native.jpg"
+i <- 1
+n <- nrow(image_suggestions)
+while(i <= n){
+  image_suggestions$scaledImageURL[i] <- scaledURL <- paste0(scaledURLStem,
+                    image_suggestions$drsID[i],
+                    scaledURLTail_1,
+                    imageSize,
+                    scaledURLTail_2) ; scaledURL
+  i <- i + 1
+}
+# browseURL(image_suggestions$scaledImageURL[3]) # test
+## Scaled image URL ##
+######################
+image_suggestions <- image_suggestions %>%
+  arrange(continent)
+###############
+## Save Data ##
+# save(image_suggestions,file = "image_suggestions.Rda")
+# write.csv(image_suggestions, file = "image_suggestions.csv", row.names = FALSE)
+## Save Data ##
+###############
+################
+## continents ##
+# asia <- image_suggestions %>%
+#   filter(continent == "Asia")
+# 
+# europe <- image_suggestions %>%
+#   filter(continent == "Europe")
+# 
+# africa <- image_suggestions %>%
+#   filter(continent == "Africa")
+# 
+# northAmerica <- image_suggestions %>%
+#   filter(continent == "North America")
+# 
+# southAmerica <- image_suggestions %>%
+#   filter(continent == "South America")
+# 
+# oceania <- image_suggestions %>%
+#   filter(continent == "Oceania") # %>%
+  # select(continent,title,catalog,imageURN,note)
+## continents ##
+################
+###################
+## count records ##
+# df.continent_recs <- nrow(df.continent)
+# europe_recs <- nrow(europe) ; europe_recs
+# africa_recs <- nrow(africa) ; africa_recs
+# northAmerica_recs <- nrow(northAmerica) ; northAmerica_recs
+# southAmerica_recs <- nrow(southAmerica) ; southAmerica_recs
+# oceania_recs <- nrow(oceania) ; oceania_recs
+## count records ##
+# ###################
+
+```
+
+
+```{r htmlOutput, eval=FALSE, include=FALSE}
+
+# htmlOutput <- function(df){
+#   i <- 1
+#   n <- nrow(df)
+#   while(i <= n){
+#     continent_html <- paste(
+#       "<a href=\"",
+#       df$fullSizeImageURL[i],
+#       "\">",
+#       "<img src=\"",
+#       df$scaledImageURL[i],
+#       "\" target=\"blank\"/>",
+#       "</a><br /><a href=\"",
+#       df$catalog[i],
+#       "\" target=\"blank\">",
+#       df$title[i],
+#       "</a>",
+#       "</br><br /><hr />",
+#       sep=""
+#     )
+#     html <- writeLines(continent_html,con = stdout())
+#     return(html)
+#     i <- i + 1
+#   }
+# }
+# 
+# df.continent <- image_suggestions %>%
+#   filter(continent == "Africa")
+# 
+# LLIINNEESS <- function(df.continent)
+# writeLines(LLIINNEESS)
+
+```
+
+
+<!-- <meta charset="UTF-8"> -->
+
+# Harvard Library
+
+#### Open & Inclusive
+
+## Africa
+
+```{r africahtml, echo=FALSE, message=FALSE, warning=FALSE, results="asis",include=TRUE}
+df.continent <- image_suggestions %>%
+  filter(continent == "Africa")
+
+i <- 1
+n <- nrow(df.continent)
+while(i <= n){
+  continent_html <- paste(
+    "<a href=\"",
+    df.continent$fullSizeImageURL[i],
+    "\">",
+    "<img src=\"",
+    df.continent$scaledImageURL[i],
+    "\" target=\"blank\"/>",
+    "</a><br /><a href=\"",
+    df.continent$catalog[i],
+    "\" target=\"blank\"><b>",
+    df.continent$title[i],
+    "</b></a>", "<br />[Largest image in DRS: ",
+    df.continent$imageWidth[i],
+    " x ",
+    df.continent$imageHeight[i],"]",
+    "</br><br /><hr />",
+    sep=""
+  )
+# writeLines(as_utf8(continent_html),con = stdout())
+writeLines(continent_html,con = stdout())
+  i <- i + 1
+}
+
+
+```
+
+## Asia
+
+```{r asia html, echo=FALSE, results="asis", include=TRUE}
+
+df.continent <- image_suggestions %>%
+  filter(continent == "Asia")
+
+i <- 1
+n <- nrow(df.continent)
+while(i <= n){
+  continent_html <- paste(
+    "<a href=\"",
+    df.continent$fullSizeImageURL[i],
+    "\">",
+    "<img src=\"",
+    df.continent$scaledImageURL[i],
+    "\" target=\"blank\"/>",
+    "</a><br /><a href=\"",
+    df.continent$catalog[i],
+    "\" target=\"blank\"><b>",
+    df.continent$title[i],
+    "</b></a>", "<br />[Largest image in DRS: ",
+    df.continent$imageWidth[i],
+    " x ",
+    df.continent$imageHeight[i],"]",
+    "</br><br /><hr />",
+    sep=""
+  )
+# writeLines(as_utf8(continent_html),con = stdout())
+writeLines(continent_html,con = stdout())
+  i <- i + 1
+}
+
+```
+
+## Europe
+
+```{r europehtml, echo=FALSE, include= TRUE, results="asis"}
+
+df.continent <- image_suggestions %>%
+  filter(continent == "Europe")
+
+i <- 1
+n <- nrow(df.continent)
+while(i <= n){
+  continent_html <- paste(
+    "<a href=\"",
+    df.continent$fullSizeImageURL[i],
+    "\">",
+    "<img src=\"",
+    df.continent$scaledImageURL[i],
+    "\" target=\"blank\"/>",
+    "</a><br /><a href=\"",
+    df.continent$catalog[i],
+    "\" target=\"blank\"><b>",
+    df.continent$title[i],
+    "</b></a>", "<br />[Largest image in DRS: ",
+    df.continent$imageWidth[i],
+    " x ",
+    df.continent$imageHeight[i],"]",
+    "</br><br /><hr />",
+    sep=""
+  )
+# writeLines(as_utf8(continent_html),con = stdout())
+writeLines(continent_html,con = stdout())
+  i <- i + 1
+}
+
+```
+## North America
+
+```{r northAmericahtml, echo=FALSE, results='asis',include=TRUE}
+
+df.continent <- image_suggestions %>%
+  filter(continent == "North America")
+
+i <- 1
+n <- nrow(df.continent)
+while(i <= n){
+  continent_html <- paste(
+    "<a href=\"",
+    df.continent$fullSizeImageURL[i],
+    "\">",
+    "<img src=\"",
+    df.continent$scaledImageURL[i],
+    "\" target=\"blank\"/>",
+    "</a><br /><a href=\"",
+    df.continent$catalog[i],
+    "\" target=\"blank\"><b>",
+    df.continent$title[i],
+    "</b></a>", "<br />[Largest image in DRS: ",
+    df.continent$imageWidth[i],
+    " x ",
+    df.continent$imageHeight[i],"]",
+    "</br><br /><hr />",
+    sep=""
+  )
+# writeLines(as_utf8(continent_html),con = stdout())
+writeLines(continent_html,con = stdout())
+  i <- i + 1
+}
+
+```
+
+## South America
+
+```{r southamericahtml, echo=FALSE, results="asis",include=TRUE}
+
+df.continent <- image_suggestions %>%
+  filter(continent == "South America")
+i <- 1
+n <- nrow(df.continent)
+while(i <= n){
+  continent_html <- paste(
+    "<a href=\"",
+    df.continent$fullSizeImageURL[i],
+    "\">",
+    "<img src=\"",
+    df.continent$scaledImageURL[i],
+    "\" target=\"blank\"/>",
+    "</a><br /><a href=\"",
+    df.continent$catalog[i],
+    "\" target=\"blank\"><b>",
+    df.continent$title[i],
+    "</b></a>", "<br />[Largest image in DRS: ",
+    df.continent$imageWidth[i],
+    " x ",
+    df.continent$imageHeight[i],"]",
+    "</br><br /><hr />",
+    sep=""
+  )
+# writeLines(as_utf8(continent_html),con = stdout())
+writeLines(continent_html,con = stdout())
+  i <- i + 1
+}
+```
+
+```{r lastRevised, include=FALSE}
+
+lastRevised <- timestamp(prefix = "Last Revised: ",suffix = "") ; lastRevised
+
+```
+
+##### `r lastRevised`
+
