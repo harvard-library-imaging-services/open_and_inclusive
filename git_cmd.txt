@@ -1,0 +1,1 @@
+git add --all ; git status ; git commit -m added panel dims ; git push origin master
