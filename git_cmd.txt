@@ -1,1 +1,1 @@
-git add --all ; git status ; git commit -m added panel dims ; git push origin master
+git add --all ; git status ; git commit -m "removed anchors" ; git push origin master
